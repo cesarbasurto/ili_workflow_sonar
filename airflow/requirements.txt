@@ -1,0 +1,5 @@
+apache-airflow-providers-postgres
+
+python-dotenv
+requests
+boto3

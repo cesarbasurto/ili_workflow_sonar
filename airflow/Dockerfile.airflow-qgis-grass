@@ -1,0 +1,102 @@
+# syntax=docker/dockerfile:1.7
+
+ARG AIRFLOW_VERSION=3.3.0
+ARG PYTHON_VERSION=3.11
+
+FROM apache/airflow:${AIRFLOW_VERSION}-python${PYTHON_VERSION}
+
+ARG AIRFLOW_VERSION
+ARG PYTHON_VERSION
+ARG QGIS_SERIES=3.44
+ARG JAVA_MAJOR=21
+
+USER root
+
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        gpg \
+        wget; \
+    install -d -m 0755 /etc/apt/keyrings; \
+    wget -qO /etc/apt/keyrings/qgis-archive-keyring.gpg \
+        https://download.qgis.org/downloads/qgis-archive-keyring.gpg; \
+    wget -qO- https://packages.adoptium.net/artifactory/api/gpg/key/public \
+        | gpg --dearmor --batch --yes \
+          -o /etc/apt/keyrings/adoptium.gpg; \
+    printf '%s\n' \
+        'Types: deb' \
+        'URIs: https://qgis.org/debian-ltr' \
+        'Suites: bookworm' \
+        'Architectures: amd64' \
+        'Components: main' \
+        'Signed-By: /etc/apt/keyrings/qgis-archive-keyring.gpg' \
+        > /etc/apt/sources.list.d/qgis.sources; \
+    printf '%s\n' \
+        'deb [signed-by=/etc/apt/keyrings/adoptium.gpg] https://packages.adoptium.net/artifactory/deb bookworm main' \
+        > /etc/apt/sources.list.d/adoptium.list; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        qgis \
+        qgis-providers \
+        python3-qgis \
+        qgis-provider-grass \
+        qgis-plugin-grass \
+        grass \
+        gdal-bin \
+        temurin-${JAVA_MAJOR}-jre; \
+    JAVA_REAL_HOME="$(dirname "$(dirname "$(readlink -f "$(command -v java)")")")"; \
+    ln -sfn "${JAVA_REAL_HOME}" /opt/java-${JAVA_MAJOR}; \
+    install -d -o airflow -g root -m 0700 /tmp/runtime-airflow; \
+    install -d -o airflow -g root -m 0775 /tmp/matplotlib; \
+    apt-get autoremove -yqq --purge; \
+    apt-get clean; \
+    rm -rf /var/lib/apt/lists/*
+
+ENV JAVA_HOME=/opt/java-21 \
+    PATH="/opt/java-21/bin:${PATH}" \
+    QGIS_PREFIX_PATH=/usr \
+    QT_QPA_PLATFORM=offscreen \
+    XDG_RUNTIME_DIR=/tmp/runtime-airflow \
+    MPLCONFIGDIR=/tmp/matplotlib \
+    PYTHONPATH=/opt/airflow
+
+USER airflow
+
+RUN python -c "import pathlib, site; \
+p=pathlib.Path(site.getusersitepackages()); \
+p.mkdir(parents=True, exist_ok=True); \
+(p / 'debian-dist-packages.pth').write_text( \
+'/usr/lib/python3/dist-packages\n', encoding='utf-8')"
+
+COPY --chown=airflow:root requirements.txt /tmp/requirements.txt
+
+RUN pip install --no-cache-dir \
+        "apache-airflow==${AIRFLOW_VERSION}" \
+        -r /tmp/requirements.txt \
+        --constraint "${HOME}/constraints.txt"
+
+# WORKDIR /opt/airflow
+
+# COPY --chown=airflow:root dags/ /opt/airflow/dags/
+# COPY --chown=airflow:root utils/ /opt/airflow/utils/
+
+RUN set -eux; \
+    test "$(airflow version)" = "${AIRFLOW_VERSION}"; \
+    python -c "import sys; \
+from qgis.core import Qgis; \
+print(sys.version); \
+print('QGIS:', Qgis.QGIS_VERSION); \
+assert Qgis.QGIS_VERSION.startswith('${QGIS_SERIES}.')"; \
+    qgis_process list >/tmp/qgis-process-list.txt 2>&1; \
+    ! grep -q 'Python support will be disabled' /tmp/qgis-process-list.txt; \
+    grep -q 'native:' /tmp/qgis-process-list.txt; \
+    rm -f /tmp/qgis-process-list.txt; \
+    java -version
+
+
+RUN set -eux; \
+    command -v grass; \
+    grass --version; \
+    qgis_process plugins enable grassprovider; \
+    qgis_process plugins
