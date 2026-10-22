@@ -18,11 +18,11 @@ mkdir -p "$ILI2DB_DEST_DIR"
 
 # Download legacy ili2pg
 echo "Downloading legacy ili2pg..."
-wget --https-only https://downloads.interlis.ch/ili2pg/ili2pg-${LEGACY_ILI2DB_VERSION}.zip -P "$ILI2DB_DEST_DIR"
+wget --max-redirect=0 https://downloads.interlis.ch/ili2pg/ili2pg-${LEGACY_ILI2DB_VERSION}.zip -P "$ILI2DB_DEST_DIR"
 
 # Download ili2pg
 echo "Downloading ili2pg..."
-wget --https-only https://downloads.interlis.ch/ili2pg/ili2pg-${ILI2DB_VERSION}.zip -P "$ILI2DB_DEST_DIR"
+wget --max-redirect=0 https://downloads.interlis.ch/ili2pg/ili2pg-${ILI2DB_VERSION}.zip -P "$ILI2DB_DEST_DIR"
 
 
 # Unzip files into the target directory

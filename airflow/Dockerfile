@@ -13,7 +13,7 @@ RUN apt-get update \
         ca-certificates \
         gpg \
         wget \
-    && wget --https-only -qO- \
+    && wget --max-redirect=0 -qO- \
         https://packages.adoptium.net/artifactory/api/gpg/key/public \
         | gpg --dearmor --batch --yes \
         -o /usr/share/keyrings/adoptium.gpg \
