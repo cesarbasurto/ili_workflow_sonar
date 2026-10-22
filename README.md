@@ -2,6 +2,18 @@
 
 Orquestador ETL en Apache Airflow para gestionar y transformar datos definidos en INTERLIS.
 
+## Pruebas y cobertura para SonarQube
+
+Desde la raíz del repositorio, instala las dependencias de prueba y genera el informe de cobertura:
+
+```shell
+python -m pip install -r requirements-test.txt
+python -m coverage run --branch --source=airflow -m unittest discover -s tests -t .
+python -m coverage xml -o coverage.xml
+```
+
+Con `pysonar` instalado y `SONAR_TOKEN` definido en el entorno, ejecuta `pysonar` desde la misma carpeta. El archivo `sonar-project.properties` configura el proyecto y la ruta de `coverage.xml`. El informe se genera localmente y no se incluye en Git.
+
 ## Desarrolladores
 
 1. Clona el repositorio en tu máquina local:
