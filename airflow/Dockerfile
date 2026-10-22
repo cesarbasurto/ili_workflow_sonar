@@ -11,9 +11,9 @@ USER root
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
-        wget \
         gpg \
-    && wget -qO- \
+        wget \
+    && wget --https-only -qO- \
         https://packages.adoptium.net/artifactory/api/gpg/key/public \
         | gpg --dearmor --batch --yes \
         -o /usr/share/keyrings/adoptium.gpg \
@@ -49,10 +49,13 @@ COPY requirements.txt /tmp/requirements.txt
 
 # Fijamos la versión de Airflow para evitar que una dependencia
 # actualice o degrade accidentalmente Apache Airflow.
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir \
+# Se usa el pip de la imagen base (sin --upgrade pip, que no es reproducible),
+# solo wheels (sin ejecutar scripts de setup) y el archivo de constraints
+# de la imagen para fijar las versiones resueltas.
+RUN pip install --no-cache-dir --only-binary :all: \
         "apache-airflow==${AIRFLOW_VERSION}" \
-        -r /tmp/requirements.txt
+        -r /tmp/requirements.txt \
+        --constraint "${HOME}/constraints.txt"
 
 # ---------------------------------------------------------------------
 # Código de la aplicación

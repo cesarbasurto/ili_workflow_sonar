@@ -5,6 +5,20 @@ import logging
 from config.general_config import EPSG_SCRIPT
 from config.ili2db_config import DbConfiguration, Ili2DbConfiguration
 
+STDOUT_LOG_FORMAT = "STDOUT:\n%s"
+STDERR_LOG_FORMAT = "STDERR:\n%s"
+
+
+def _log_process_output(result: subprocess.CompletedProcess | None):
+    """
+    Registra (nivel debug) la salida del proceso, si este llegó a ejecutarse.
+    """
+    if result is None:
+        return
+
+    logging.debug(STDOUT_LOG_FORMAT, result.stdout)
+    logging.debug(STDERR_LOG_FORMAT, result.stderr)
+
 
 def exportar_xtf(ili2db_config:Ili2DbConfiguration):
     """
@@ -51,18 +65,18 @@ def exportar_xtf(ili2db_config:Ili2DbConfiguration):
     logging.info(" ".join(command))
 
 
-    try: 
+    result = None
+    try:
         result = subprocess.run(command, check=True, capture_output=True, text=True)
         logging.info(f"Exportación a XTF completada exitosamente: {result.stderr.strip()}")
     except subprocess.CalledProcessError as e:
-        logging.error(f"Error exportando XTF: {e.stderr}")
-        raise RuntimeError(f"Error exportando XTF: {e.stderr}")
+        logging.exception(f"Error exportando XTF: {e.stderr}")
+        raise RuntimeError(f"Error exportando XTF: {e.stderr}") from e
     except Exception as e:
-        logging.error(f"Error en exportar_datos_ladm: {e}")
-        raise RuntimeError(f"Error exportando XTF: {e}")
+        logging.exception(f"Error en exportar_datos_ladm: {e}")
+        raise RuntimeError(f"Error exportando XTF: {e}") from e
     finally:
-        logging.debug("STDOUT:\n", result.stdout)
-        logging.debug("STDERR:\n", result.stderr)
+        _log_process_output(result)
 
 def import_schema(ili2db_config:Ili2DbConfiguration):
     """
@@ -110,18 +124,18 @@ def import_schema(ili2db_config:Ili2DbConfiguration):
     logging.info("Ejecutando import schema:")
     logging.info(" ".join(command))
 
+    result = None
     try:
         result = subprocess.run(command, check=True, capture_output=True, text=True)
         logging.info(f"Creación del esquema de la base de datos completada: {result.stderr.strip()}")
     except subprocess.CalledProcessError as e:
-        logging.error(f"Error al crear el esquema de la base de datos: {e.stderr}")
-        raise RuntimeError(f"Error al crear el esquema de la base de datos: {e.stderr}")
+        logging.exception(f"Error al crear el esquema de la base de datos: {e.stderr}")
+        raise RuntimeError(f"Error al crear el esquema de la base de datos: {e.stderr}") from e
     except Exception as e:
-        logging.error(f"Error al crear el esquema de la base de datos: {e}")
-        raise RuntimeError(f"Error al crear el esquema de la base de datos: {e}")
+        logging.exception(f"Error al crear el esquema de la base de datos: {e}")
+        raise RuntimeError(f"Error al crear el esquema de la base de datos: {e}") from e
     finally:
-        logging.debug("STDOUT:\n", result.stdout)
-        logging.debug("STDERR:\n", result.stderr)
+        _log_process_output(result)
 
 def import_data(ili2db_config:Ili2DbConfiguration):
     """
@@ -157,15 +171,15 @@ def import_data(ili2db_config:Ili2DbConfiguration):
     logging.info("Ejecutando import data:")
     logging.info(" ".join(command))
 
+    result = None
     try:
         result = subprocess.run(command, check=True, capture_output=True, text=True)
         logging.info(f"Importación del XTF completada exitosamente: {result.stderr.strip()}")
     except subprocess.CalledProcessError as e:
-        logging.error(f"Error importando el XTF: {e.stderr}")
-        raise RuntimeError(f"Error importando el XTF: {e.stderr}")
+        logging.exception(f"Error importando el XTF: {e.stderr}")
+        raise RuntimeError(f"Error importando el XTF: {e.stderr}") from e
     except Exception as e:
-        logging.error(f"Error importando el XTF: {e}")
-        raise RuntimeError(f"Error importando el XTF: {e}")
+        logging.exception(f"Error importando el XTF: {e}")
+        raise RuntimeError(f"Error importando el XTF: {e}") from e
     finally:
-        logging.debug("STDOUT:\n", result.stdout)
-        logging.debug("STDERR:\n", result.stderr)
+        _log_process_output(result)

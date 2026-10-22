@@ -47,6 +47,7 @@ FERNET_KEY=
 | `AIRFLOW_UID` | UID del usuario del sistema que ejecutará los contenedores de Airflow. Permite mantener correctamente los permisos de los archivos y volúmenes compartidos. | `1000` |
 | `_AIRFLOW_WWW_USER_USERNAME` | Nombre del usuario administrador que puede crearse durante la inicialización de Airflow. | `admin` |
 | `_AIRFLOW_WWW_USER_PASSWORD` | Contraseña inicial del usuario administrador. En producción debe reemplazarse por una contraseña segura. | `contraseña_segura` |
+| `AIRFLOW_DB_USER` / `AIRFLOW_DB_PASSWORD` | Credenciales de la BD interna de metadatos de Airflow (contenedor `postgres`). La contraseña es obligatoria; el despliegue falla si no se define. | `airflow` / `contraseña_segura` |
 | `POSTGRES_CONN_ID` | Identificador de la conexión PostgreSQL utilizada por los DAG y procesos ETL. | `terrainfo_etl` |
 | `DB_HOST` | Host donde se encuentra PostgreSQL. | `host.docker.internal` |
 | `DB_NAME` | Nombre de la base de datos. | `etl` |
@@ -132,14 +133,14 @@ openssl rand -hex 24
 Ejemplo de resultado:
 
 ```text
-c27b8ac10df39b273436dd7398c5fa769c547e60fc9baf82
+<contraseña_segura>
 ```
 
 Y posteriormente:
 
 ```dotenv
 _AIRFLOW_WWW_USER_USERNAME=admin
-_AIRFLOW_WWW_USER_PASSWORD=c27b8ac10df39b273436dd7398c5fa769c547e60fc9baf82
+_AIRFLOW_WWW_USER_PASSWORD=<contraseña_segura>
 ```
 
 > Las variables `_AIRFLOW_WWW_USER_*` están orientadas principalmente a la inicialización del ambiente. Una vez creado el administrador, la gestión de usuarios debe realizarse utilizando los mecanismos de autenticación y administración correspondientes a la versión de Airflow instalada.

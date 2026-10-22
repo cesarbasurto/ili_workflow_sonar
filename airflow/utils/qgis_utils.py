@@ -1,4 +1,5 @@
 import os
+import tempfile
 from pathlib import Path
 
 def build_qgis_environment() -> dict[str, str]:
@@ -12,16 +13,10 @@ def build_qgis_environment() -> dict[str, str]:
 
     # No reutilizar XDG_RUNTIME_DIR definido por Docker,
     # porque puede haber sido creado por root.
+    # mkdtemp crea de forma atómica un directorio con nombre aleatorio
+    # y permisos 0700, propiedad del usuario que ejecuta la tarea.
     runtime_directory = Path(
-        f"/tmp/qgis-runtime-{os.getuid()}-{os.getpid()}"
-    )
-
-    # El directorio se crea directamente con permisos 0700
-    # por el mismo usuario que ejecuta la tarea.
-    runtime_directory.mkdir(
-        parents=False,
-        exist_ok=True,
-        mode=0o700,
+        tempfile.mkdtemp(prefix="qgis-runtime-")
     )
 
     environment["XDG_RUNTIME_DIR"] = str(runtime_directory)

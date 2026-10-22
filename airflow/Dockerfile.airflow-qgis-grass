@@ -19,9 +19,9 @@ RUN set -eux; \
         gpg \
         wget; \
     install -d -m 0755 /etc/apt/keyrings; \
-    wget -qO /etc/apt/keyrings/qgis-archive-keyring.gpg \
+    wget --https-only -qO /etc/apt/keyrings/qgis-archive-keyring.gpg \
         https://download.qgis.org/downloads/qgis-archive-keyring.gpg; \
-    wget -qO- https://packages.adoptium.net/artifactory/api/gpg/key/public \
+    wget --https-only -qO- https://packages.adoptium.net/artifactory/api/gpg/key/public \
         | gpg --dearmor --batch --yes \
           -o /etc/apt/keyrings/adoptium.gpg; \
     printf '%s\n' \
@@ -37,16 +37,16 @@ RUN set -eux; \
         > /etc/apt/sources.list.d/adoptium.list; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
-        qgis \
-        qgis-providers \
-        python3-qgis \
-        qgis-provider-grass \
-        qgis-plugin-grass \
-        grass \
         gdal-bin \
-        temurin-${JAVA_MAJOR}-jre; \
+        grass \
+        python3-qgis \
+        qgis \
+        qgis-plugin-grass \
+        qgis-provider-grass \
+        qgis-providers \
+        "temurin-${JAVA_MAJOR}-jre"; \
     JAVA_REAL_HOME="$(dirname "$(dirname "$(readlink -f "$(command -v java)")")")"; \
-    ln -sfn "${JAVA_REAL_HOME}" /opt/java-${JAVA_MAJOR}; \
+    ln -sfn "${JAVA_REAL_HOME}" "/opt/java-${JAVA_MAJOR}"; \
     install -d -o airflow -g root -m 0700 /tmp/runtime-airflow; \
     install -d -o airflow -g root -m 0775 /tmp/matplotlib; \
     apt-get autoremove -yqq --purge; \
@@ -71,17 +71,13 @@ p.mkdir(parents=True, exist_ok=True); \
 
 COPY --chown=airflow:root requirements.txt /tmp/requirements.txt
 
-RUN pip install --no-cache-dir \
+# Instalamos dependencias Python y verificamos Airflow, QGIS, Java y GRASS
+# en una sola instrucción RUN para reducir capas.
+RUN set -eux; \
+    pip install --no-cache-dir --only-binary :all: \
         "apache-airflow==${AIRFLOW_VERSION}" \
         -r /tmp/requirements.txt \
-        --constraint "${HOME}/constraints.txt"
-
-# WORKDIR /opt/airflow
-
-# COPY --chown=airflow:root dags/ /opt/airflow/dags/
-# COPY --chown=airflow:root utils/ /opt/airflow/utils/
-
-RUN set -eux; \
+        --constraint "${HOME}/constraints.txt"; \
     test "$(airflow version)" = "${AIRFLOW_VERSION}"; \
     python -c "import sys; \
 from qgis.core import Qgis; \
@@ -92,10 +88,7 @@ assert Qgis.QGIS_VERSION.startswith('${QGIS_SERIES}.')"; \
     ! grep -q 'Python support will be disabled' /tmp/qgis-process-list.txt; \
     grep -q 'native:' /tmp/qgis-process-list.txt; \
     rm -f /tmp/qgis-process-list.txt; \
-    java -version
-
-
-RUN set -eux; \
+    java -version; \
     command -v grass; \
     grass --version; \
     qgis_process plugins enable grassprovider; \

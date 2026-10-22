@@ -43,7 +43,9 @@ log() {
 }
 
 fallar() {
-    log "ERROR" "$1"
+    local mensaje="$1"
+
+    log "ERROR" "$mensaje"
     exit 1
 }
 
@@ -51,7 +53,9 @@ trap 'log "ERROR" "Falló el comando en la línea $LINENO: $BASH_COMMAND"' ERR
 trap 'codigo_salida=$?; if [[ "$codigo_salida" -ne 0 ]]; then log "ERROR" "Proceso finalizado con errores (código $codigo_salida)."; fi' EXIT
 
 es_submodulo_inicializado() {
-    [[ -e "$1/.git" ]]
+    local ruta_submodulo="$1"
+
+    [[ -e "$ruta_submodulo/.git" ]]
 }
 
 tiene_cambios_locales() {

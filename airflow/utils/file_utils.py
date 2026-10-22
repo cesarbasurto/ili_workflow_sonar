@@ -108,23 +108,23 @@ def upload_file_to_aws_s3(
         logger.info(f"File {file_path} uploaded to {bucket_name}/{object_name} successfully.")
         return f"{bucket_name}/{object_name}"
 
-    except FileNotFoundError:
+    except FileNotFoundError as e:
         msg = f"The file {file_path} was not found."
         logger.error(msg)
-        raise msg
+        raise FileNotFoundError(msg) from e
 
-    except NoCredentialsError:
+    except NoCredentialsError as e:
         msg = "Credentials not available."
         logger.error(msg)
-        raise msg
-    except PartialCredentialsError:
+        raise RuntimeError(msg) from e
+    except PartialCredentialsError as e:
         msg = "Incomplete credentials provided."
         logger.error(msg)
-        raise msg
+        raise RuntimeError(msg) from e
     except Exception as e:
         msg = f"An error occurred: {e}"
         logger.error(msg)
-        raise msg
+        raise RuntimeError(msg) from e
 
 def compress_xtf_file(file_path: str) -> str:
     """

@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import subprocess
+import tempfile
 import time
 from collections.abc import Mapping
 from pathlib import Path
@@ -247,16 +248,10 @@ def _build_qgis_environment() -> dict[str, str]:
 
     # No reutilizar XDG_RUNTIME_DIR definido por Docker,
     # porque puede haber sido creado por root.
+    # mkdtemp crea de forma atómica un directorio con nombre aleatorio
+    # y permisos 0700, propiedad del usuario que ejecuta la tarea.
     runtime_directory = Path(
-        f"/tmp/qgis-runtime-{os.getuid()}-{os.getpid()}"
-    )
-
-    # El directorio se crea directamente con permisos 0700
-    # por el mismo usuario que ejecuta la tarea.
-    runtime_directory.mkdir(
-        parents=False,
-        exist_ok=True,
-        mode=0o700,
+        tempfile.mkdtemp(prefix="qgis-runtime-")
     )
 
     environment["XDG_RUNTIME_DIR"] = str(runtime_directory)
@@ -285,16 +280,18 @@ def _register_secrets_for_masking(
         normalized_name = parameter_name.lower()
 
         if (
-            normalized_name in SENSITIVE_PARAMETER_NAMES
-            or normalized_name.endswith("_password")
-            or normalized_name.endswith("_secret")
-            or normalized_name.endswith("_token")
+            (
+                normalized_name in SENSITIVE_PARAMETER_NAMES
+                or normalized_name.endswith("_password")
+                or normalized_name.endswith("_secret")
+                or normalized_name.endswith("_token")
+            )
+            and parameter_value not in (None, "")
         ):
-            if parameter_value not in (None, ""):
-                mask_secret(
-                    parameter_value,
-                    name=parameter_name,
-                )
+            mask_secret(
+                parameter_value,
+                name=parameter_name,
+            )
 
 
 def _model_display_name(
